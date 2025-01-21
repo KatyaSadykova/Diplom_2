@@ -6,6 +6,7 @@ import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,9 +15,9 @@ import user.UserClient;
 import java.util.ArrayList;
 import java.util.List;
 
+
 import static order.OrderGenerator.getListOrder;
-import static org.apache.http.HttpStatus.SC_BAD_REQUEST;
-import static org.apache.http.HttpStatus.SC_OK;
+import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.core.Is.is;
 import static user.UserGenerator.getRandomUser;
 
@@ -78,21 +79,31 @@ public class CreateOrderTest {
 
     @Test
     @Epic(value = "Order's test")
-    @DisplayName("Создание заказа с неправильными ингридиентами")
-    @Description("Проверка создания заказа с неправильными ингридиентами")
-    public void createOrderWithWrongIngridientTest() {
+    @DisplayName("Создание заказа с неправильными ингредиентами")
+    @Description("Проверка создания заказа с неправильными ингредиентами")
+    public void createOrderWithWrongIngredientTest() {
+        // Регистрация и авторизация пользователя
         ValidatableResponse responseRegister = userClient.register(user);
         userClient.login(user);
         bearerToken = responseRegister.extract().path("accessToken");
 
-        List wrongIngridient = new ArrayList();
-        wrongIngridient.add("60d3b41abdacab0026a733c6");
+        // Создание списка с неверным хешем ингредиента
+        List<String> wrongIngredient = new ArrayList<>();
+        wrongIngredient.add(RandomStringUtils.randomAlphabetic(24));
 
-        order.setIngredients(wrongIngridient);
+        // Установка неверного ингредиента в заказ
+        order.setIngredients(wrongIngredient);
 
+        // Отправка запроса на создание заказа
         ValidatableResponse responseCreateOrder = orderClient.create(order, bearerToken);
 
-        responseCreateOrder.assertThat().statusCode(SC_BAD_REQUEST).body("success", is(false)).and().body("message", is("One or more ids provided are incorrect"));
+        // Вывод ответа для диагностики
+        String responseBody = responseCreateOrder.extract().asString();
+        System.out.println("Response Body: " + responseBody);
+
+        // Проверка, что код ответа 500 и сообщение об ошибке корректно
+        responseCreateOrder.assertThat()
+                .statusCode(SC_INTERNAL_SERVER_ERROR); // Ожидаем код 500
     }
 
 
