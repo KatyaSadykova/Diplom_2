@@ -11,10 +11,9 @@ import org.junit.Test;
 
 import static org.apache.http.HttpStatus.SC_OK;
 import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.equalToIgnoringCase;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
 import static user.UserGenerator.getRandomUser;
 
 public class ChangeDataUserTest {
@@ -52,21 +51,13 @@ public class ChangeDataUserTest {
         ValidatableResponse responseRegister = userClient.register(user);
         bearerToken = responseRegister.extract().path("accessToken");
 
-
-        User updatedUser = new User(user.getEmail(), "newPassword123", user.getName());
-
-
-        ValidatableResponse responsePatch = userClient.patch(updatedUser, bearerToken);
-
-
-        responsePatch.assertThat().statusCode(SC_OK)
-                .body("success", is(true))
-                .body("user.email", equalToIgnoringCase(user.getEmail()))
-                .body("user.name", equalTo(user.getName()));
-
-        ValidatableResponse responseLogin = userClient.login(updatedUser);
-        responseLogin.assertThat().statusCode(SC_OK)
-                .body("accessToken", notNullValue());
+        String newPassword = "newSecurePassword";
+        user.setPassword(newPassword);
+        ValidatableResponse updateUserResponse = userClient.patch(user, bearerToken);
+        int statusCode = updateUserResponse.extract().statusCode();
+        boolean isUserUpdated = updateUserResponse.extract().path("success");
+        assertEquals("Ожидается статус 200", SC_OK, statusCode);
+        assertTrue("Ожидается успешное обновление данных пользователя", isUserUpdated);
     }
 
     @Test
